@@ -1,0 +1,92 @@
+From c1a9cd465b8554ea70f1fdaaccd4dcbe24e789c3 Mon Sep 17 00:00:00 2001
+From: CLD <cld.username@gmail.com>
+Date: Fri, 19 Jul 2024 12:03:54 +0000
+Subject: [PATCH] Make fbtft-core use sunxi-gpio
+
+Change-Id: I03db3e1e509dc17b3d92f7100b5c86ca17a06854
+---
+ drivers/staging/fbtft/fbtft-core.c | 26 ++++++++++++++------------
+ 1 file changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/staging/fbtft/fbtft-core.c b/drivers/staging/fbtft/fbtft-core.c
+index 587f68aa..4b1e2d6f 100644
+--- a/drivers/staging/fbtft/fbtft-core.c
++++ b/drivers/staging/fbtft/fbtft-core.c
+@@ -40,6 +40,8 @@
+ #include "fbtft.h"
+ #include "internal.h"
+ 
++#include <linux/sunxi-gpio.h>
++
+ static unsigned long debug;
+ module_param(debug, ulong, 0);
+ MODULE_PARM_DESC(debug, "override device debug level");
+@@ -164,10 +166,10 @@ static int fbtft_request_one_gpio(struct fbtft_par *par,
+ 	struct device *dev = par->info->device;
+ 	struct device_node *node = dev->of_node;
+ 	int gpio, flags, ret = 0;
+-	enum of_gpio_flags of_flags;
++	struct gpio_config gpio_of_flags;
+ 
+ 	if (of_find_property(node, name, NULL)) {
+-		gpio = of_get_named_gpio_flags(node, name, index, &of_flags);
++		gpio = of_get_named_gpio_flags(node, name, index, (enum of_gpio_flags *)&gpio_of_flags);
+ 		if (gpio == -ENOENT)
+ 			return 0;
+ 		if (gpio == -EPROBE_DEFER)
+@@ -179,7 +181,7 @@ static int fbtft_request_one_gpio(struct fbtft_par *par,
+ 		}
+ 
+ 		/* active low translates to initially low */
+-		flags = (of_flags & OF_GPIO_ACTIVE_LOW) ? GPIOF_OUT_INIT_LOW :
++		flags = (gpio_of_flags.data & OF_GPIO_ACTIVE_LOW) ? GPIOF_OUT_INIT_LOW :
+ 							GPIOF_OUT_INIT_HIGH;
+ 		ret = devm_gpio_request_one(dev, gpio, flags,
+ 						dev->driver->name);
+@@ -206,34 +208,34 @@ static int fbtft_request_gpios_dt(struct fbtft_par *par)
+ 	if (!par->info->device->of_node)
+ 		return -EINVAL;
+ 
+-	ret = fbtft_request_one_gpio(par, "reset-gpios", 0, &par->gpio.reset);
++	ret = fbtft_request_one_gpio(par, "reset", 0, &par->gpio.reset);
+ 	if (ret)
+ 		return ret;
+-	ret = fbtft_request_one_gpio(par, "dc-gpios", 0, &par->gpio.dc);
++	ret = fbtft_request_one_gpio(par, "dc", 0, &par->gpio.dc);
+ 	if (ret)
+ 		return ret;
+-	ret = fbtft_request_one_gpio(par, "rd-gpios", 0, &par->gpio.rd);
++	ret = fbtft_request_one_gpio(par, "rd", 0, &par->gpio.rd);
+ 	if (ret)
+ 		return ret;
+-	ret = fbtft_request_one_gpio(par, "wr-gpios", 0, &par->gpio.wr);
++	ret = fbtft_request_one_gpio(par, "wr", 0, &par->gpio.wr);
+ 	if (ret)
+ 		return ret;
+-	ret = fbtft_request_one_gpio(par, "cs-gpios", 0, &par->gpio.cs);
++	ret = fbtft_request_one_gpio(par, "cs", 0, &par->gpio.cs);
+ 	if (ret)
+ 		return ret;
+-	ret = fbtft_request_one_gpio(par, "latch-gpios", 0, &par->gpio.latch);
++	ret = fbtft_request_one_gpio(par, "latch", 0, &par->gpio.latch);
+ 	if (ret)
+ 		return ret;
+ 	for (i = 0; i < 16; i++) {
+-		ret = fbtft_request_one_gpio(par, "db-gpios", i,
++		ret = fbtft_request_one_gpio(par, "db", i,
+ 						&par->gpio.db[i]);
+ 		if (ret)
+ 			return ret;
+-		ret = fbtft_request_one_gpio(par, "led-gpios", i,
++		ret = fbtft_request_one_gpio(par, "led", i,
+ 						&par->gpio.led[i]);
+ 		if (ret)
+ 			return ret;
+-		ret = fbtft_request_one_gpio(par, "aux-gpios", i,
++		ret = fbtft_request_one_gpio(par, "aux", i,
+ 						&par->gpio.aux[i]);
+ 		if (ret)
+ 			return ret;
+-- 
+2.25.1
+

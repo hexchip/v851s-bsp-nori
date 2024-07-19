@@ -1,0 +1,7 @@
+config ENABLE_SUNXI_VIN_ISP
+	select PACKAGE_opencv
+	bool "Enable sunxi vin isp support"
+
+config ENABLE_OPENCV_PYTHON_SUPPORT
+	select PACKAGE_opencv
+	bool "Enable opencv python3 binding support"
